@@ -9,6 +9,22 @@ from pathlib import Path
 from typing import Any
 
 import matplotlib.pyplot as plt
+
+plt.rcParams.update({
+    'font.sans-serif': ['DejaVu Sans', 'Arial', 'Helvetica', 'sans-serif'],
+    'font.family': 'sans-serif',
+    'font.size': 13,
+    'axes.titlesize': 14,
+    'axes.titleweight': 'bold',
+    'axes.labelsize': 13,
+    'axes.labelweight': 'bold',
+    'xtick.labelsize': 12,
+    'ytick.labelsize': 12,
+    'legend.fontsize': 12,
+    'figure.titlesize': 15,
+    'lines.linewidth': 2.5,
+    'lines.markersize': 8,
+})
 import numpy as np
 import pandas as pd
 from sklearn.datasets import load_breast_cancer, load_diabetes, load_wine
@@ -596,31 +612,49 @@ def plot_round1(summary: pd.DataFrame, fig_dir: Path) -> None:
         .reset_index()
     )
 
-    fig, axes = plt.subplots(1, 2, figsize=(12, 4))
-    axes[0].bar(agg["method"], agg["accuracy"], color=["#3a7", "#5a9", "#c85"])
-    axes[0].set_title("Round1 Mean Accuracy")
-    axes[0].set_ylim(0.0, 1.0)
-    axes[0].tick_params(axis="x", rotation=20)
+    label_map = {
+        "cart": "CART",
+        "cart_group_threshold": "CART + Post-proc",
+        "cert_tree": "Certifiable Tree",
+    }
+    agg["display_name"] = agg["method"].map(lambda x: label_map.get(x, str(x)))
 
-    axes[1].bar(agg["method"], agg["fair_rate"], color=["#59a", "#4c8", "#d77"])
-    axes[1].set_title("Round1 Fairness Satisfaction Rate")
+    fig, axes = plt.subplots(1, 2, figsize=(11, 4.8))
+    axes[0].bar(agg["display_name"], agg["accuracy"], color=["#2b5c8f", "#419d78", "#d95f02"], width=0.55)
+    axes[0].set_title("Round 1: Mean Accuracy", fontsize=14, fontweight="bold")
+    axes[0].set_ylabel("Accuracy", fontsize=13, fontweight="bold")
+    axes[0].set_ylim(0.0, 1.0)
+    axes[0].tick_params(axis="x", labelsize=12)
+    axes[0].tick_params(axis="y", labelsize=12)
+    axes[0].grid(axis="y", linestyle="--", alpha=0.5)
+
+    axes[1].bar(agg["display_name"], agg["fair_rate"], color=["#2b5c8f", "#419d78", "#d95f02"], width=0.55)
+    axes[1].set_title("Round 1: Fairness Satisfaction Rate", fontsize=14, fontweight="bold")
+    axes[1].set_ylabel("Pass Rate", fontsize=13, fontweight="bold")
     axes[1].set_ylim(0.0, 1.0)
-    axes[1].tick_params(axis="x", rotation=20)
-    fig.tight_layout()
-    fig.savefig(fig_dir / "round1_accuracy_fairness.png", dpi=200)
+    axes[1].tick_params(axis="x", labelsize=12)
+    axes[1].tick_params(axis="y", labelsize=12)
+    axes[1].grid(axis="y", linestyle="--", alpha=0.5)
+
+    fig.tight_layout(pad=1.5)
+    fig.savefig(fig_dir / "round1_accuracy_fairness.png", dpi=300, bbox_inches="tight")
     plt.close(fig)
 
-    fig2, ax2 = plt.subplots(figsize=(6, 4))
-    ax2.scatter(agg["accuracy"], agg["di"], s=90)
-    for _, r in agg.iterrows():
-        ax2.text(r["accuracy"] + 0.002, r["di"] + 0.002, r["method"], fontsize=8)
-    ax2.set_xlabel("Accuracy (mean)")
-    ax2.set_ylabel("DI (mean)")
-    ax2.set_title("Round1 Accuracy-Fairness Tradeoff")
-    ax2.set_xlim(0.0, 1.0)
-    ax2.set_ylim(0.0, 1.0)
-    fig2.tight_layout()
-    fig2.savefig(fig_dir / "round1_tradeoff_scatter.png", dpi=200)
+    fig2, ax2 = plt.subplots(figsize=(6.5, 4.8))
+    colors = ["#2b5c8f", "#419d78", "#d95f02"]
+    markers = ["o", "s", "^"]
+    for i, (_, r) in enumerate(agg.iterrows()):
+        ax2.scatter(r["accuracy"], r["di"], s=130, color=colors[i % len(colors)], marker=markers[i % len(markers)], label=r["display_name"])
+    ax2.set_xlabel("Accuracy (Mean)", fontsize=13, fontweight="bold")
+    ax2.set_ylabel("Disparate Impact (Mean)", fontsize=13, fontweight="bold")
+    ax2.set_title("Round 1: Accuracy-Fairness Trade-off", fontsize=14, fontweight="bold")
+    ax2.set_xlim(0.50, 0.90)
+    ax2.set_ylim(0.20, 1.0)
+    ax2.tick_params(axis="both", labelsize=12)
+    ax2.legend(fontsize=12, frameon=True, loc="best")
+    ax2.grid(linestyle="--", alpha=0.5)
+    fig2.tight_layout(pad=1.5)
+    fig2.savefig(fig_dir / "round1_tradeoff_scatter.png", dpi=300, bbox_inches="tight")
     plt.close(fig2)
 
 
@@ -714,17 +748,21 @@ def run_scalability(exp_root: Path, fig_root: Path) -> dict[str, Any]:
     scale_df = pd.DataFrame(rows)
     scale_df.to_csv(out_dir / "scalability.csv", index=False)
 
-    fig, ax = plt.subplots(figsize=(7, 4))
-    for depth in [1, 2]:
+    fig, ax = plt.subplots(figsize=(6.8, 4.5))
+    colors = ["#2b5c8f", "#d95f02"]
+    markers = ["o", "s"]
+    for idx, depth in enumerate([1, 2]):
         sub = scale_df[scale_df["depth"] == depth]
         grp = sub.groupby("feature_count")["runtime_sec"].mean().reset_index()
-        ax.plot(grp["feature_count"], grp["runtime_sec"], marker="o", label=f"depth={depth}")
-    ax.set_xlabel("Feature count (k)")
-    ax.set_ylabel("Runtime (s)")
-    ax.set_title("Scalability: Runtime vs Feature Count")
-    ax.legend()
-    fig.tight_layout()
-    fig.savefig(fig_root / "round2_scalability_runtime.png", dpi=200)
+        ax.plot(grp["feature_count"], grp["runtime_sec"], marker=markers[idx], color=colors[idx], linewidth=2.5, markersize=8, label=f"Depth = {depth}")
+    ax.set_xlabel("Feature Count (k)", fontsize=13, fontweight="bold")
+    ax.set_ylabel("Runtime (seconds)", fontsize=13, fontweight="bold")
+    ax.set_title("Scalability: Runtime vs Feature Count", fontsize=14, fontweight="bold")
+    ax.tick_params(axis="both", labelsize=12)
+    ax.legend(fontsize=12, frameon=True)
+    ax.grid(linestyle="--", alpha=0.5)
+    fig.tight_layout(pad=1.5)
+    fig.savefig(fig_root / "round2_scalability_runtime.png", dpi=300, bbox_inches="tight")
     plt.close(fig)
 
     return {"path": str(out_dir / "scalability.csv"), "rows": int(len(scale_df))}
@@ -803,16 +841,31 @@ def run_ablation(exp_root: Path, fig_root: Path) -> dict[str, Any]:
     )
     ab_sum.to_csv(out_dir / "ablation_summary.csv", index=False)
 
-    fig, axes = plt.subplots(1, 2, figsize=(12, 4))
-    axes[0].bar(ab_sum["variant"], ab_sum["runtime_mean"], color=["#4b9", "#c96", "#69b", "#a66"])
-    axes[0].set_title("Ablation Runtime")
-    axes[0].tick_params(axis="x", rotation=20)
-    axes[1].bar(ab_sum["variant"], ab_sum["fair_rate"], color=["#4b9", "#c96", "#69b", "#a66"])
-    axes[1].set_title("Ablation Fair Rate")
+    ab_label_map = {
+        "full": "Full",
+        "no_cache": "No Cache",
+        "no_ordering": "No Ordering",
+    }
+    ab_sum["display_name"] = ab_sum["variant"].map(lambda x: ab_label_map.get(x, str(x)))
+
+    fig, axes = plt.subplots(1, 2, figsize=(11, 4.8))
+    axes[0].bar(ab_sum["display_name"], ab_sum["runtime_mean"], color=["#4b9b7d", "#e76f51", "#2a9d8f"], width=0.55)
+    axes[0].set_title("Ablation: Mean Runtime (s)", fontsize=14, fontweight="bold")
+    axes[0].set_ylabel("Runtime (seconds)", fontsize=13, fontweight="bold")
+    axes[0].tick_params(axis="x", labelsize=12)
+    axes[0].tick_params(axis="y", labelsize=12)
+    axes[0].grid(axis="y", linestyle="--", alpha=0.5)
+
+    axes[1].bar(ab_sum["display_name"], ab_sum["fair_rate"], color=["#4b9b7d", "#e76f51", "#2a9d8f"], width=0.55)
+    axes[1].set_title("Ablation: Fairness Pass Rate", fontsize=14, fontweight="bold")
+    axes[1].set_ylabel("Pass Rate", fontsize=13, fontweight="bold")
     axes[1].set_ylim(0.0, 1.0)
-    axes[1].tick_params(axis="x", rotation=20)
-    fig.tight_layout()
-    fig.savefig(fig_root / "round2_ablation.png", dpi=200)
+    axes[1].tick_params(axis="x", labelsize=12)
+    axes[1].tick_params(axis="y", labelsize=12)
+    axes[1].grid(axis="y", linestyle="--", alpha=0.5)
+
+    fig.tight_layout(pad=1.5)
+    fig.savefig(fig_root / "round2_ablation.png", dpi=300, bbox_inches="tight")
     plt.close(fig)
 
     return {"path": str(out_dir / "ablation.csv"), "rows": int(len(ab_df))}
@@ -902,20 +955,39 @@ def run_stability(exp_root: Path, fig_root: Path) -> dict[str, Any]:
     st_df = pd.DataFrame(rows)
     st_df.to_csv(out_dir / "stability.csv", index=False)
 
-    fig, axes = plt.subplots(1, 2, figsize=(12, 4))
+    fig, axes = plt.subplots(1, 2, figsize=(11, 4.8))
     methods = ["cart", "cart_group_threshold", "cert_tree"]
+    display_methods = ["CART", "CART + Post-proc", "Certifiable Tree"]
     acc_data = [st_df[st_df["method"] == m]["accuracy"].dropna().values for m in methods]
     di_data = [st_df[st_df["method"] == m]["di"].dropna().values for m in methods]
-    axes[0].boxplot(acc_data, tick_labels=methods, showfliers=False)
+
+    bp0 = axes[0].boxplot(acc_data, tick_labels=display_methods, patch_artist=True, showfliers=False)
+    colors = ["#2b5c8f", "#419d78", "#d95f02"]
+    for patch, color in zip(bp0['boxes'], colors):
+        patch.set_facecolor(color)
+        patch.set_alpha(0.7)
+
     axes[0].set_ylim(0.0, 1.0)
-    axes[0].set_title("Stability: Accuracy Distribution")
-    axes[1].boxplot(di_data, tick_labels=methods, showfliers=False)
+    axes[0].set_title("Stability: Accuracy Distribution", fontsize=14, fontweight="bold")
+    axes[0].set_ylabel("Accuracy", fontsize=13, fontweight="bold")
+    axes[0].tick_params(axis="x", labelsize=12)
+    axes[0].tick_params(axis="y", labelsize=12)
+    axes[0].grid(axis="y", linestyle="--", alpha=0.5)
+
+    bp1 = axes[1].boxplot(di_data, tick_labels=display_methods, patch_artist=True, showfliers=False)
+    for patch, color in zip(bp1['boxes'], colors):
+        patch.set_facecolor(color)
+        patch.set_alpha(0.7)
+
     axes[1].set_ylim(0.0, 1.0)
-    axes[1].set_title("Stability: DI Distribution")
-    for ax in axes:
-        ax.tick_params(axis="x", rotation=20)
-    fig.tight_layout()
-    fig.savefig(fig_root / "round2_stability_boxplot.png", dpi=200)
+    axes[1].set_title("Stability: DI Distribution", fontsize=14, fontweight="bold")
+    axes[1].set_ylabel("Disparate Impact (DI)", fontsize=13, fontweight="bold")
+    axes[1].tick_params(axis="x", labelsize=12)
+    axes[1].tick_params(axis="y", labelsize=12)
+    axes[1].grid(axis="y", linestyle="--", alpha=0.5)
+
+    fig.tight_layout(pad=1.5)
+    fig.savefig(fig_root / "round2_stability_boxplot.png", dpi=300, bbox_inches="tight")
     plt.close(fig)
 
     return {"path": str(out_dir / "stability.csv"), "rows": int(len(st_df))}
@@ -1112,22 +1184,36 @@ def run_noise_robustness(exp_root: Path, fig_root: Path) -> dict[str, Any]:
     df = pd.DataFrame(rows)
     df.to_csv(out_dir / "noise_robustness.csv", index=False)
 
-    fig, axes = plt.subplots(1, 2, figsize=(12, 4))
-    for method in ["cart", "cart_group_threshold", "cert_tree"]:
-        sub = df[df["method"] == method]
+    fig, axes = plt.subplots(1, 2, figsize=(11, 4.8))
+    method_info = [
+        ("cart", "CART", "#2b5c8f", "o"),
+        ("cart_group_threshold", "CART + Post-proc", "#419d78", "s"),
+        ("cert_tree", "Certifiable Tree", "#d95f02", "^"),
+    ]
+    for key, disp_name, color, marker in method_info:
+        sub = df[df["method"] == key]
         grp = sub.groupby("sigma")[["accuracy", "di"]].mean().reset_index()
-        axes[0].plot(grp["sigma"], grp["accuracy"], marker="o", label=method)
-        axes[1].plot(grp["sigma"], grp["di"], marker="o", label=method)
-    axes[0].set_ylim(0.0, 1.0)
-    axes[0].set_title("Noise Robustness: Accuracy")
-    axes[0].set_xlabel("Gaussian noise sigma")
+        axes[0].plot(grp["sigma"], grp["accuracy"], marker=marker, color=color, linewidth=2.5, markersize=8, label=disp_name)
+        axes[1].plot(grp["sigma"], grp["di"], marker=marker, color=color, linewidth=2.5, markersize=8, label=disp_name)
+
+    axes[0].set_ylim(0.4, 1.0)
+    axes[0].set_title("Noise Robustness: Accuracy", fontsize=14, fontweight="bold")
+    axes[0].set_xlabel(r"Gaussian Noise ($\sigma$)", fontsize=13, fontweight="bold")
+    axes[0].set_ylabel("Accuracy", fontsize=13, fontweight="bold")
+    axes[0].tick_params(axis="both", labelsize=12)
+    axes[0].legend(fontsize=11.5, frameon=True)
+    axes[0].grid(linestyle="--", alpha=0.5)
+
     axes[1].set_ylim(0.0, 1.0)
-    axes[1].set_title("Noise Robustness: DI")
-    axes[1].set_xlabel("Gaussian noise sigma")
-    axes[0].legend()
-    axes[1].legend()
-    fig.tight_layout()
-    fig.savefig(fig_root / "round3_noise_robustness.png", dpi=200)
+    axes[1].set_title("Noise Robustness: Disparate Impact", fontsize=14, fontweight="bold")
+    axes[1].set_xlabel(r"Gaussian Noise ($\sigma$)", fontsize=13, fontweight="bold")
+    axes[1].set_ylabel("Disparate Impact (DI)", fontsize=13, fontweight="bold")
+    axes[1].tick_params(axis="both", labelsize=12)
+    axes[1].legend(fontsize=11.5, frameon=True)
+    axes[1].grid(linestyle="--", alpha=0.5)
+
+    fig.tight_layout(pad=1.5)
+    fig.savefig(fig_root / "round3_noise_robustness.png", dpi=300, bbox_inches="tight")
     plt.close(fig)
 
     return {"path": str(out_dir / "noise_robustness.csv"), "rows": int(len(df))}
