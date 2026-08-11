@@ -1,0 +1,9 @@
+{
+  "case_study": {
+    "case_study_path": "experiment\\round3\\case_study.md"
+  },
+  "noise_robustness": {
+    "path": "experiment\\round3\\noise_robustness.csv",
+    "rows": 180
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "scalability": {
+    "path": "experiment\\round2\\scalability.csv",
+    "rows": 30
+  },
+  "ablation": {
+    "path": "experiment\\round2\\ablation.csv",
+    "rows": 24
+  },
+  "stability": {
+    "path": "experiment\\round2\\stability.csv",
+    "rows": 144
+  }
+}

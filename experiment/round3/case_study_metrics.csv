@@ -1,0 +1,4 @@
+method,accuracy,selection_rate_g0,selection_rate_g1,di,fpr_g0,fpr_g1,fpr_gap,status
+cart,0.8648148148148148,0.023715415019762844,0.7735191637630662,0.030659117615639355,0.013452914798206279,0.3472222222222222,0.33376930742401595,SAT
+cert_tree_depth1,,,,,,,,UNSAT
+cert_tree_depth2,,,,,,,,UNSAT

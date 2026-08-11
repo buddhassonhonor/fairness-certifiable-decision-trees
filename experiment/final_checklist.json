@@ -1,0 +1,9 @@
+{
+  "strong_baselines": true,
+  "dataset_count_ge_5": true,
+  "has_scalability_curve": true,
+  "has_ablation": true,
+  "has_stability_distribution": true,
+  "has_case_study": true,
+  "has_noise_robustness": true
+}

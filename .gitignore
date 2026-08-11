@@ -1,0 +1,19 @@
+# Default ignore everything
+*
+
+# Allow repository infrastructure and README
+!README.md
+!.gitignore
+
+# Allow experiment code and data
+!experiment/
+!experiment/**
+!experiment_fairness.py
+
+# Allow generated figures
+!figures/
+!figures/**
+
+# Ignore pycache inside experiment
+__pycache__/
+*.pyc
